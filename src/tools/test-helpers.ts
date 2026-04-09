@@ -35,7 +35,7 @@ export function createTestServer(): McpServer {
  * Since McpServer doesn't expose handlers directly, we capture them during registration.
  */
 export type ToolHandler = (params: any) => Promise<{
-  content: Array<{ type: string; text: string }>;
+  content: Array<{ type: "text"; text: string }>;
   isError?: boolean;
 }>;
 
