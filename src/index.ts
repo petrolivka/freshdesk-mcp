@@ -7,6 +7,10 @@ import { registerContactTools } from "./tools/contacts.js";
 import { registerCompanyTools } from "./tools/companies.js";
 import { registerConversationTools } from "./tools/conversations.js";
 import { registerAgentTools } from "./tools/agents.js";
+import { registerTimeEntryTools } from "./tools/time-entries.js";
+import { registerFieldTools } from "./tools/fields.js";
+import { registerCannedResponseTools } from "./tools/canned-responses.js";
+import { registerProductTools } from "./tools/products.js";
 
 const server = new McpServer({
   name: "freshdesk-mcp-server",
@@ -18,6 +22,10 @@ registerContactTools(server);
 registerCompanyTools(server);
 registerConversationTools(server);
 registerAgentTools(server);
+registerTimeEntryTools(server);
+registerFieldTools(server);
+registerCannedResponseTools(server);
+registerProductTools(server);
 
 async function main(): Promise<void> {
   const domain = process.env.FRESHDESK_DOMAIN;
