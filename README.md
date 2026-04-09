@@ -1,6 +1,6 @@
 # freshdesk-mcp-server
 
-MCP server for the Freshdesk helpdesk API. Provides tools for managing tickets, contacts, companies, conversations, agents, and groups.
+MCP server for the Freshdesk helpdesk API. Provides 59 tools for managing tickets, contacts, companies, conversations, agents, groups, time tracking, knowledge base, satisfaction ratings, and more.
 
 ## Setup
 
@@ -82,6 +82,53 @@ Add to your Claude Code MCP settings:
 - `freshdesk_list_groups` - List groups
 - `freshdesk_get_group` - Get group by ID
 - `freshdesk_list_roles` - List roles
+
+### Time Entries
+- `freshdesk_create_time_entry` - Log time against a ticket
+- `freshdesk_list_time_entries` - List time entries with filters
+- `freshdesk_update_time_entry` - Update a time entry
+- `freshdesk_delete_time_entry` - Delete a time entry
+- `freshdesk_toggle_timer` - Start/stop a timer on a time entry
+
+### Fields
+- `freshdesk_list_ticket_fields` - List all ticket fields (including custom)
+- `freshdesk_list_contact_fields` - List all contact fields (including custom)
+- `freshdesk_list_company_fields` - List all company fields (including custom)
+
+### Canned Responses
+- `freshdesk_list_canned_response_folders` - List canned response folders
+- `freshdesk_list_canned_responses` - List responses in a folder
+- `freshdesk_get_canned_response` - Get a specific canned response
+
+### Products & Business Hours
+- `freshdesk_list_products` - List all products
+- `freshdesk_get_product` - Get product by ID
+- `freshdesk_list_business_hours` - List business hour configurations
+- `freshdesk_get_business_hours` - Get business hours by ID
+
+### Solutions (Knowledge Base)
+- `freshdesk_list_solution_categories` - List KB categories
+- `freshdesk_get_solution_category` - Get category by ID
+- `freshdesk_list_solution_folders` - List folders in a category
+- `freshdesk_get_solution_folder` - Get folder by ID
+- `freshdesk_list_solution_articles` - List articles in a folder
+- `freshdesk_get_solution_article` - Get article by ID
+- `freshdesk_create_solution_article` - Create a KB article
+- `freshdesk_update_solution_article` - Update a KB article
+
+### Satisfaction Ratings & SLA
+- `freshdesk_list_satisfaction_ratings` - List all CSAT ratings
+- `freshdesk_get_ticket_satisfaction_ratings` - Get ratings for a ticket
+- `freshdesk_list_sla_policies` - List SLA policies
+
+### Ticket Watchers
+- `freshdesk_list_ticket_watchers` - List watchers on a ticket
+- `freshdesk_add_ticket_watcher` - Add a watcher to a ticket
+- `freshdesk_remove_ticket_watcher` - Remove a watcher from a ticket
+
+### Ticket Bulk Operations
+- `freshdesk_bulk_update_tickets` - Update multiple tickets at once
+- `freshdesk_merge_tickets` - Merge duplicate tickets
 
 ## Search Query Syntax
 
