@@ -7,14 +7,39 @@
   "bin": {
     "freshdesk-mcp-server": "dist/index.js"
   },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "start": "node dist/index.js",
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
     "clean": "rm -rf dist",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "prepublishOnly": "npm run clean && npm run build && npm test"
   },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "freshdesk",
+    "helpdesk",
+    "ticketing",
+    "claude",
+    "llm"
+  ],
+  "author": "Petr Olivka",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/petrolivka/freshdesk-mcp.git"
+  },
+  "bugs": {
+    "url": "https://github.com/petrolivka/freshdesk-mcp/issues"
+  },
+  "homepage": "https://github.com/petrolivka/freshdesk-mcp#readme",
   "engines": {
     "node": ">=18"
   },

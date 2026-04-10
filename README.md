@@ -1,6 +1,8 @@
 # freshdesk-mcp-server
 
-MCP server for the Freshdesk helpdesk API. Provides 59 tools for managing tickets, contacts, companies, conversations, agents, groups, time tracking, knowledge base, satisfaction ratings, and more.
+MCP server for the Freshdesk helpdesk API. Provides 60 tools for managing tickets, contacts, companies, conversations, agents, groups, time tracking, knowledge base, satisfaction ratings, and more.
+
+Source: [github.com/petrolivka/freshdesk-mcp](https://github.com/petrolivka/freshdesk-mcp)
 
 ## Setup
 
