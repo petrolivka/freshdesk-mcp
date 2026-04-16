@@ -73,7 +73,7 @@ Add to your Claude Code MCP settings:
 ### Conversations
 - `freshdesk_reply_to_ticket` - Send a reply to a ticket
 - `freshdesk_add_note` - Add a note (public or private) to a ticket
-- `freshdesk_list_conversations` - List ticket conversations
+- `freshdesk_list_conversations` - List ticket conversations (supports `fetch_all` for complete history)
 - `freshdesk_update_conversation` - Update conversation body
 - `freshdesk_delete_conversation` - Delete a conversation
 
