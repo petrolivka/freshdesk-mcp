@@ -205,6 +205,59 @@ describe("Conversation Tools", () => {
 
       expect(result.isError).toBe(true);
     });
+
+    it("should auto-paginate across all pages when fetch_all is true", async () => {
+      const page1 = Array.from({ length: 100 }, (_, i) => ({ id: i + 1 }));
+      const page2 = Array.from({ length: 100 }, (_, i) => ({ id: i + 101 }));
+      const page3 = [{ id: 201 }, { id: 202 }];
+      mockClient.get
+        .mockResolvedValueOnce(page1)
+        .mockResolvedValueOnce(page2)
+        .mockResolvedValueOnce(page3);
+
+      const result = await handlers.get("freshdesk_list_conversations")!({
+        ticket_id: 42,
+        page: 1,
+        per_page: 30,
+        fetch_all: true,
+      });
+
+      expect(mockClient.get).toHaveBeenCalledTimes(3);
+      expect(mockClient.get).toHaveBeenNthCalledWith(
+        1,
+        "/tickets/42/conversations",
+        { page: 1, per_page: 100 }
+      );
+      expect(mockClient.get).toHaveBeenNthCalledWith(
+        2,
+        "/tickets/42/conversations",
+        { page: 2, per_page: 100 }
+      );
+      expect(mockClient.get).toHaveBeenNthCalledWith(
+        3,
+        "/tickets/42/conversations",
+        { page: 3, per_page: 100 }
+      );
+      const all = [...page1, ...page2, ...page3];
+      expect(result.content[0].text).toBe(JSON.stringify(all, null, 2));
+    });
+
+    it("should stop on empty page when fetch_all is true", async () => {
+      const page1 = Array.from({ length: 100 }, (_, i) => ({ id: i + 1 }));
+      mockClient.get
+        .mockResolvedValueOnce(page1)
+        .mockResolvedValueOnce([]);
+
+      const result = await handlers.get("freshdesk_list_conversations")!({
+        ticket_id: 42,
+        page: 1,
+        per_page: 30,
+        fetch_all: true,
+      });
+
+      expect(mockClient.get).toHaveBeenCalledTimes(2);
+      expect(result.content[0].text).toBe(JSON.stringify(page1, null, 2));
+    });
   });
 
   describe("freshdesk_update_conversation", () => {

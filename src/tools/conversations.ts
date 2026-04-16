@@ -103,14 +103,16 @@ Returns: Created note object.`,
 
 Args:
   - ticket_id (number): Ticket ID
-  - page (number, optional): Page number (default: 1)
+  - page (number, optional): Page number (default: 1). Ignored when fetch_all is true.
   - per_page (number, optional): Results per page, max 100 (default: 30)
+  - fetch_all (boolean, optional): If true, auto-paginate and return the complete conversation history (default: false)
 
 Returns: Array of conversation objects.`,
       inputSchema: {
         ticket_id: z.number().int().describe("Ticket ID"),
         page: z.number().int().min(1).default(1).describe("Page number"),
         per_page: z.number().int().min(1).max(100).default(30).describe("Results per page"),
+        fetch_all: z.boolean().default(false).describe("Auto-paginate to fetch full history"),
       },
       annotations: {
         readOnlyHint: true,
@@ -121,12 +123,34 @@ Returns: Array of conversation objects.`,
     },
     async (params) => {
       try {
-        const result = await getClient().get(
-          `/tickets/${params.ticket_id}/conversations`,
-          { page: params.page, per_page: params.per_page }
-        );
+        const client = getClient();
+        const endpoint = `/tickets/${params.ticket_id}/conversations`;
+
+        if (!params.fetch_all) {
+          const result = await client.get(endpoint, {
+            page: params.page,
+            per_page: params.per_page,
+          });
+          return {
+            content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+          };
+        }
+
+        const perPage = 100;
+        const all: unknown[] = [];
+        let page = 1;
+        while (true) {
+          const pageResult = await client.get<unknown[]>(endpoint, {
+            page,
+            per_page: perPage,
+          });
+          if (!Array.isArray(pageResult) || pageResult.length === 0) break;
+          all.push(...pageResult);
+          if (pageResult.length < perPage) break;
+          page++;
+        }
         return {
-          content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+          content: [{ type: "text", text: JSON.stringify(all, null, 2) }],
         };
       } catch (error) {
         return {
