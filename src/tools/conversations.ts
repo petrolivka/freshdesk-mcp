@@ -1,6 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { getClient, handleApiError } from "../services/freshdesk-client.js";
+import { fetchAllPages } from "../services/pagination.js";
 
 export function registerConversationTools(server: McpServer): void {
   server.registerTool(
@@ -136,19 +137,7 @@ Returns: Array of conversation objects.`,
           };
         }
 
-        const perPage = 100;
-        const all: unknown[] = [];
-        let page = 1;
-        while (true) {
-          const pageResult = await client.get<unknown[]>(endpoint, {
-            page,
-            per_page: perPage,
-          });
-          if (!Array.isArray(pageResult) || pageResult.length === 0) break;
-          all.push(...pageResult);
-          if (pageResult.length < perPage) break;
-          page++;
-        }
+        const all = await fetchAllPages(client, endpoint);
         return {
           content: [{ type: "text", text: JSON.stringify(all, null, 2) }],
         };

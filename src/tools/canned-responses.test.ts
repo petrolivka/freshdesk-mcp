@@ -32,16 +32,25 @@ describe("Canned Response Tools", () => {
       ];
       mockClient.get.mockResolvedValue(folders);
 
-      const result = await handlers.get("freshdesk_list_canned_response_folders")!({});
+      const result = await handlers.get("freshdesk_list_canned_response_folders")!({
+        page: 1,
+        per_page: 30,
+      });
 
-      expect(mockClient.get).toHaveBeenCalledWith("/canned_response_folders");
+      expect(mockClient.get).toHaveBeenCalledWith("/canned_response_folders", {
+        page: 1,
+        per_page: 30,
+      });
       expect(result.content[0].text).toBe(JSON.stringify(folders, null, 2));
     });
 
     it("should handle errors", async () => {
       mockClient.get.mockRejectedValue(new Error("Auth failed"));
 
-      const result = await handlers.get("freshdesk_list_canned_response_folders")!({});
+      const result = await handlers.get("freshdesk_list_canned_response_folders")!({
+        page: 1,
+        per_page: 30,
+      });
 
       expect(result.isError).toBe(true);
     });
@@ -57,12 +66,32 @@ describe("Canned Response Tools", () => {
 
       const result = await handlers.get("freshdesk_list_canned_responses")!({
         folder_id: 1,
+        page: 1,
+        per_page: 30,
       });
 
       expect(mockClient.get).toHaveBeenCalledWith(
-        "/canned_response_folders/1/responses"
+        "/canned_response_folders/1/responses",
+        { page: 1, per_page: 30 }
       );
       expect(result.content[0].text).toBe(JSON.stringify(responses, null, 2));
+    });
+
+    it("should auto-paginate responses when fetch_all is true", async () => {
+      const fullPage = Array.from({ length: 100 }, (_, i) => ({ id: i + 1 }));
+      const partial = [{ id: 101 }];
+      mockClient.get
+        .mockResolvedValueOnce(fullPage)
+        .mockResolvedValueOnce(partial);
+
+      const result = await handlers.get("freshdesk_list_canned_responses")!({
+        folder_id: 1,
+        fetch_all: true,
+      });
+
+      expect(mockClient.get).toHaveBeenCalledTimes(2);
+      const parsed = JSON.parse(result.content[0].text);
+      expect(parsed).toHaveLength(101);
     });
 
     it("should handle errors", async () => {
@@ -70,6 +99,8 @@ describe("Canned Response Tools", () => {
 
       const result = await handlers.get("freshdesk_list_canned_responses")!({
         folder_id: 999,
+        page: 1,
+        per_page: 30,
       });
 
       expect(result.isError).toBe(true);

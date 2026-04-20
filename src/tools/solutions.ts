@@ -1,6 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { getClient, handleApiError } from "../services/freshdesk-client.js";
+import { fetchAllPages } from "../services/pagination.js";
 
 export function registerSolutionTools(server: McpServer): void {
   // --- Categories ---
@@ -9,10 +10,19 @@ export function registerSolutionTools(server: McpServer): void {
     "freshdesk_list_solution_categories",
     {
       title: "List Solution Categories",
-      description: `List all knowledge base solution categories.
+      description: `List knowledge base solution categories (paginated).
+
+Args:
+  - page (number, optional): Page number (default: 1). Ignored when fetch_all is true.
+  - per_page (number, optional): Results per page, max 100 (default: 30)
+  - fetch_all (boolean, optional): If true, auto-paginate and return all categories (default: false)
 
 Returns: Array of solution category objects with id, name, description, and visibility.`,
-      inputSchema: {},
+      inputSchema: {
+        page: z.number().int().min(1).default(1).describe("Page number"),
+        per_page: z.number().int().min(1).max(100).default(30).describe("Results per page"),
+        fetch_all: z.boolean().default(false).describe("Auto-paginate to fetch all categories"),
+      },
       annotations: {
         readOnlyHint: true,
         destructiveHint: false,
@@ -20,11 +30,22 @@ Returns: Array of solution category objects with id, name, description, and visi
         openWorldHint: true,
       },
     },
-    async () => {
+    async (params) => {
       try {
-        const result = await getClient().get("/solutions/categories");
+        const client = getClient();
+        const endpoint = "/solutions/categories";
+        if (!params.fetch_all) {
+          const result = await client.get(endpoint, {
+            page: params.page,
+            per_page: params.per_page,
+          });
+          return {
+            content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+          };
+        }
+        const all = await fetchAllPages(client, endpoint);
         return {
-          content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+          content: [{ type: "text", text: JSON.stringify(all, null, 2) }],
         };
       } catch (error) {
         return {
@@ -78,14 +99,20 @@ Returns: Solution category object.`,
     "freshdesk_list_solution_folders",
     {
       title: "List Solution Folders",
-      description: `List all folders within a solution category.
+      description: `List folders within a solution category (paginated).
 
 Args:
   - category_id (number): Solution category ID
+  - page (number, optional): Page number (default: 1). Ignored when fetch_all is true.
+  - per_page (number, optional): Results per page, max 100 (default: 30)
+  - fetch_all (boolean, optional): If true, auto-paginate and return all folders (default: false)
 
 Returns: Array of solution folder objects.`,
       inputSchema: {
         category_id: z.number().int().describe("Solution category ID"),
+        page: z.number().int().min(1).default(1).describe("Page number"),
+        per_page: z.number().int().min(1).max(100).default(30).describe("Results per page"),
+        fetch_all: z.boolean().default(false).describe("Auto-paginate to fetch all folders"),
       },
       annotations: {
         readOnlyHint: true,
@@ -96,11 +123,20 @@ Returns: Array of solution folder objects.`,
     },
     async (params) => {
       try {
-        const result = await getClient().get(
-          `/solutions/categories/${params.category_id}/folders`
-        );
+        const client = getClient();
+        const endpoint = `/solutions/categories/${params.category_id}/folders`;
+        if (!params.fetch_all) {
+          const result = await client.get(endpoint, {
+            page: params.page,
+            per_page: params.per_page,
+          });
+          return {
+            content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+          };
+        }
+        const all = await fetchAllPages(client, endpoint);
         return {
-          content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+          content: [{ type: "text", text: JSON.stringify(all, null, 2) }],
         };
       } catch (error) {
         return {
@@ -156,16 +192,22 @@ Returns: Solution folder object with articles count and hierarchy.`,
     "freshdesk_list_solution_articles",
     {
       title: "List Solution Articles",
-      description: `List all articles within a solution folder.
+      description: `List articles within a solution folder (paginated).
 
 Args:
   - category_id (number): Solution category ID
   - folder_id (number): Solution folder ID
+  - page (number, optional): Page number (default: 1). Ignored when fetch_all is true.
+  - per_page (number, optional): Results per page, max 100 (default: 30)
+  - fetch_all (boolean, optional): If true, auto-paginate and return all articles (default: false)
 
 Returns: Array of solution article objects.`,
       inputSchema: {
         category_id: z.number().int().describe("Solution category ID"),
         folder_id: z.number().int().describe("Solution folder ID"),
+        page: z.number().int().min(1).default(1).describe("Page number"),
+        per_page: z.number().int().min(1).max(100).default(30).describe("Results per page"),
+        fetch_all: z.boolean().default(false).describe("Auto-paginate to fetch all articles"),
       },
       annotations: {
         readOnlyHint: true,
@@ -176,11 +218,20 @@ Returns: Array of solution article objects.`,
     },
     async (params) => {
       try {
-        const result = await getClient().get(
-          `/solutions/categories/${params.category_id}/folders/${params.folder_id}/articles`
-        );
+        const client = getClient();
+        const endpoint = `/solutions/categories/${params.category_id}/folders/${params.folder_id}/articles`;
+        if (!params.fetch_all) {
+          const result = await client.get(endpoint, {
+            page: params.page,
+            per_page: params.per_page,
+          });
+          return {
+            content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+          };
+        }
+        const all = await fetchAllPages(client, endpoint);
         return {
-          content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+          content: [{ type: "text", text: JSON.stringify(all, null, 2) }],
         };
       } catch (error) {
         return {

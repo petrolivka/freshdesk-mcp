@@ -1,6 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { getClient, handleApiError } from "../services/freshdesk-client.js";
+import { fetchAllPages, fetchAllSearchPages } from "../services/pagination.js";
 
 export function registerTicketTools(server: McpServer): void {
   server.registerTool(
@@ -120,8 +121,9 @@ Returns: Ticket object with all fields.`,
       description: `List tickets with optional filters. Returns paginated results (max 30 per page).
 
 Args:
-  - page (number, optional): Page number (default: 1)
+  - page (number, optional): Page number (default: 1). Ignored when fetch_all is true.
   - per_page (number, optional): Results per page, max 100 (default: 30)
+  - fetch_all (boolean, optional): If true, auto-paginate and return all matching tickets (default: false). Freshdesk caps results at 300 pages.
   - filter (string, optional): Predefined filter - "new_and_my_open", "watching", "spam", "deleted"
   - requester_id (number, optional): Filter by requester
   - email (string, optional): Filter by requester email
@@ -135,6 +137,7 @@ Returns: Array of ticket objects.`,
       inputSchema: {
         page: z.number().int().min(1).default(1).describe("Page number"),
         per_page: z.number().int().min(1).max(100).default(30).describe("Results per page"),
+        fetch_all: z.boolean().default(false).describe("Auto-paginate to fetch all matching tickets"),
         filter: z.string().optional().describe("Predefined filter"),
         requester_id: z.number().int().optional().describe("Filter by requester ID"),
         email: z.string().email().optional().describe("Filter by requester email"),
@@ -153,22 +156,32 @@ Returns: Array of ticket objects.`,
     },
     async (params) => {
       try {
-        const query: Record<string, unknown> = {
-          page: params.page,
-          per_page: params.per_page,
+        const client = getClient();
+        const baseQuery: Record<string, unknown> = {
           order_by: params.order_by,
           order_type: params.order_type,
         };
-        if (params.filter) query.filter = params.filter;
-        if (params.requester_id) query.requester_id = params.requester_id;
-        if (params.email) query.email = params.email;
-        if (params.company_id) query.company_id = params.company_id;
-        if (params.updated_since) query.updated_since = params.updated_since;
-        if (params.include) query.include = params.include;
+        if (params.filter) baseQuery.filter = params.filter;
+        if (params.requester_id) baseQuery.requester_id = params.requester_id;
+        if (params.email) baseQuery.email = params.email;
+        if (params.company_id) baseQuery.company_id = params.company_id;
+        if (params.updated_since) baseQuery.updated_since = params.updated_since;
+        if (params.include) baseQuery.include = params.include;
 
-        const result = await getClient().get("/tickets", query);
+        if (!params.fetch_all) {
+          const result = await client.get("/tickets", {
+            ...baseQuery,
+            page: params.page,
+            per_page: params.per_page,
+          });
+          return {
+            content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+          };
+        }
+
+        const all = await fetchAllPages(client, "/tickets", baseQuery);
         return {
-          content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+          content: [{ type: "text", text: JSON.stringify(all, null, 2) }],
         };
       } catch (error) {
         return {
@@ -295,12 +308,14 @@ Supports: priority, status, agent_id, group_id, requester_id, company_id, type, 
 
 Args:
   - query (string): Search query in Freshdesk query language
-  - page (number, optional): Page number (default: 1)
+  - page (number, optional): Page number (default: 1). Ignored when fetch_all is true.
+  - fetch_all (boolean, optional): If true, auto-paginate across all pages (default: false). Freshdesk search API is capped at 10 pages / 300 results.
 
-Returns: Array of matching tickets (max 30 per page).`,
+Returns: Object with results array (max 30 per page) and total count.`,
       inputSchema: {
         query: z.string().min(1).describe("Search query in Freshdesk query language"),
         page: z.number().int().min(1).default(1).describe("Page number"),
+        fetch_all: z.boolean().default(false).describe("Auto-paginate up to Freshdesk's 10-page / 300-result search cap"),
       },
       annotations: {
         readOnlyHint: true,
@@ -311,12 +326,26 @@ Returns: Array of matching tickets (max 30 per page).`,
     },
     async (params) => {
       try {
-        const result = await getClient().get("/search/tickets", {
-          query: `"${params.query}"`,
-          page: params.page,
-        });
+        const client = getClient();
+        const baseQuery = { query: `"${params.query}"` };
+        if (!params.fetch_all) {
+          const result = await client.get("/search/tickets", {
+            ...baseQuery,
+            page: params.page,
+          });
+          return {
+            content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+          };
+        }
+        const aggregated = await fetchAllSearchPages(
+          client,
+          "/search/tickets",
+          baseQuery
+        );
         return {
-          content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+          content: [
+            { type: "text", text: JSON.stringify(aggregated, null, 2) },
+          ],
         };
       } catch (error) {
         return {

@@ -33,16 +33,41 @@ describe("Solution Tools", () => {
       ];
       mockClient.get.mockResolvedValue(categories);
 
-      const result = await handlers.get("freshdesk_list_solution_categories")!({});
+      const result = await handlers.get("freshdesk_list_solution_categories")!({
+        page: 1,
+        per_page: 30,
+      });
 
-      expect(mockClient.get).toHaveBeenCalledWith("/solutions/categories");
+      expect(mockClient.get).toHaveBeenCalledWith("/solutions/categories", {
+        page: 1,
+        per_page: 30,
+      });
       expect(result.content[0].text).toBe(JSON.stringify(categories, null, 2));
+    });
+
+    it("should auto-paginate when fetch_all is true", async () => {
+      const fullPage = Array.from({ length: 100 }, (_, i) => ({ id: i + 1 }));
+      const partial = [{ id: 101 }];
+      mockClient.get
+        .mockResolvedValueOnce(fullPage)
+        .mockResolvedValueOnce(partial);
+
+      const result = await handlers.get("freshdesk_list_solution_categories")!({
+        fetch_all: true,
+      });
+
+      expect(mockClient.get).toHaveBeenCalledTimes(2);
+      const parsed = JSON.parse(result.content[0].text);
+      expect(parsed).toHaveLength(101);
     });
 
     it("should handle errors", async () => {
       mockClient.get.mockRejectedValue(new Error("Auth failed"));
 
-      const result = await handlers.get("freshdesk_list_solution_categories")!({});
+      const result = await handlers.get("freshdesk_list_solution_categories")!({
+        page: 1,
+        per_page: 30,
+      });
 
       expect(result.isError).toBe(true);
     });
@@ -83,10 +108,13 @@ describe("Solution Tools", () => {
 
       const result = await handlers.get("freshdesk_list_solution_folders")!({
         category_id: 1,
+        page: 1,
+        per_page: 30,
       });
 
       expect(mockClient.get).toHaveBeenCalledWith(
-        "/solutions/categories/1/folders"
+        "/solutions/categories/1/folders",
+        { page: 1, per_page: 30 }
       );
       expect(result.content[0].text).toBe(JSON.stringify(folders, null, 2));
     });
@@ -96,6 +124,8 @@ describe("Solution Tools", () => {
 
       const result = await handlers.get("freshdesk_list_solution_folders")!({
         category_id: 999,
+        page: 1,
+        per_page: 30,
       });
 
       expect(result.isError).toBe(true);
@@ -142,12 +172,32 @@ describe("Solution Tools", () => {
       const result = await handlers.get("freshdesk_list_solution_articles")!({
         category_id: 1,
         folder_id: 10,
+        page: 1,
+        per_page: 30,
       });
 
       expect(mockClient.get).toHaveBeenCalledWith(
-        "/solutions/categories/1/folders/10/articles"
+        "/solutions/categories/1/folders/10/articles",
+        { page: 1, per_page: 30 }
       );
       expect(result.content[0].text).toBe(JSON.stringify(articles, null, 2));
+    });
+
+    it("should auto-paginate articles when fetch_all is true", async () => {
+      const fullPage = Array.from({ length: 100 }, (_, i) => ({ id: i + 1 }));
+      mockClient.get
+        .mockResolvedValueOnce(fullPage)
+        .mockResolvedValueOnce([]);
+
+      const result = await handlers.get("freshdesk_list_solution_articles")!({
+        category_id: 1,
+        folder_id: 10,
+        fetch_all: true,
+      });
+
+      expect(mockClient.get).toHaveBeenCalledTimes(2);
+      const parsed = JSON.parse(result.content[0].text);
+      expect(parsed).toHaveLength(100);
     });
 
     it("should handle errors", async () => {
@@ -156,6 +206,8 @@ describe("Solution Tools", () => {
       const result = await handlers.get("freshdesk_list_solution_articles")!({
         category_id: 1,
         folder_id: 999,
+        page: 1,
+        per_page: 30,
       });
 
       expect(result.isError).toBe(true);

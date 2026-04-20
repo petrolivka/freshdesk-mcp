@@ -1,6 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { getClient, handleApiError } from "../services/freshdesk-client.js";
+import { fetchAllPages } from "../services/pagination.js";
 
 export function registerTimeEntryTools(server: McpServer): void {
   server.registerTool(
@@ -57,8 +58,9 @@ Returns: Created time entry object with ID.`,
       description: `List all time entries. Can filter by ticket, company, or agent.
 
 Args:
-  - page (number, optional): Page number (default: 1)
+  - page (number, optional): Page number (default: 1). Ignored when fetch_all is true.
   - per_page (number, optional): Results per page, max 100 (default: 30)
+  - fetch_all (boolean, optional): If true, auto-paginate and return all matching entries (default: false)
   - ticket_id (number, optional): Filter by ticket ID
   - company_id (number, optional): Filter by company ID
   - agent_id (number, optional): Filter by agent ID
@@ -70,6 +72,7 @@ Returns: Array of time entry objects.`,
       inputSchema: {
         page: z.number().int().min(1).default(1).describe("Page number"),
         per_page: z.number().int().min(1).max(100).default(30).describe("Results per page"),
+        fetch_all: z.boolean().default(false).describe("Auto-paginate to fetch all matching entries"),
         ticket_id: z.number().int().optional().describe("Filter by ticket ID"),
         company_id: z.number().int().optional().describe("Filter by company ID"),
         agent_id: z.number().int().optional().describe("Filter by agent ID"),
@@ -86,20 +89,28 @@ Returns: Array of time entry objects.`,
     },
     async (params) => {
       try {
-        const query: Record<string, unknown> = {
-          page: params.page,
-          per_page: params.per_page,
-        };
-        if (params.ticket_id) query.ticket_id = params.ticket_id;
-        if (params.company_id) query.company_id = params.company_id;
-        if (params.agent_id) query.agent_id = params.agent_id;
-        if (params.executed_after) query.executed_after = params.executed_after;
-        if (params.executed_before) query.executed_before = params.executed_before;
-        if (params.billable !== undefined) query.billable = params.billable;
+        const client = getClient();
+        const baseQuery: Record<string, unknown> = {};
+        if (params.ticket_id) baseQuery.ticket_id = params.ticket_id;
+        if (params.company_id) baseQuery.company_id = params.company_id;
+        if (params.agent_id) baseQuery.agent_id = params.agent_id;
+        if (params.executed_after) baseQuery.executed_after = params.executed_after;
+        if (params.executed_before) baseQuery.executed_before = params.executed_before;
+        if (params.billable !== undefined) baseQuery.billable = params.billable;
 
-        const result = await getClient().get("/time_entries", query);
+        if (!params.fetch_all) {
+          const result = await client.get("/time_entries", {
+            ...baseQuery,
+            page: params.page,
+            per_page: params.per_page,
+          });
+          return {
+            content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+          };
+        }
+        const all = await fetchAllPages(client, "/time_entries", baseQuery);
         return {
-          content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+          content: [{ type: "text", text: JSON.stringify(all, null, 2) }],
         };
       } catch (error) {
         return {

@@ -1,6 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { getClient, handleApiError } from "../services/freshdesk-client.js";
+import { fetchAllPages, fetchAllSearchPages } from "../services/pagination.js";
 
 export function registerContactTools(server: McpServer): void {
   server.registerTool(
@@ -95,11 +96,12 @@ Returns: Contact object with all fields.`,
     "freshdesk_list_contacts",
     {
       title: "List Freshdesk Contacts",
-      description: `List contacts with optional filters.
+      description: `List contacts with optional filters (paginated).
 
 Args:
-  - page (number, optional): Page number (default: 1)
+  - page (number, optional): Page number (default: 1). Ignored when fetch_all is true.
   - per_page (number, optional): Results per page, max 100 (default: 30)
+  - fetch_all (boolean, optional): If true, auto-paginate and return all matching contacts (default: false)
   - email (string, optional): Filter by email
   - phone (string, optional): Filter by phone
   - mobile (string, optional): Filter by mobile
@@ -110,6 +112,7 @@ Returns: Array of contact objects.`,
       inputSchema: {
         page: z.number().int().min(1).default(1).describe("Page number"),
         per_page: z.number().int().min(1).max(100).default(30).describe("Results per page"),
+        fetch_all: z.boolean().default(false).describe("Auto-paginate to fetch all matching contacts"),
         email: z.string().optional().describe("Filter by email"),
         phone: z.string().optional().describe("Filter by phone"),
         mobile: z.string().optional().describe("Filter by mobile"),
@@ -125,19 +128,27 @@ Returns: Array of contact objects.`,
     },
     async (params) => {
       try {
-        const query: Record<string, unknown> = {
-          page: params.page,
-          per_page: params.per_page,
-        };
-        if (params.email) query.email = params.email;
-        if (params.phone) query.phone = params.phone;
-        if (params.mobile) query.mobile = params.mobile;
-        if (params.company_id) query.company_id = params.company_id;
-        if (params.updated_since) query.updated_since = params.updated_since;
+        const client = getClient();
+        const baseQuery: Record<string, unknown> = {};
+        if (params.email) baseQuery.email = params.email;
+        if (params.phone) baseQuery.phone = params.phone;
+        if (params.mobile) baseQuery.mobile = params.mobile;
+        if (params.company_id) baseQuery.company_id = params.company_id;
+        if (params.updated_since) baseQuery.updated_since = params.updated_since;
 
-        const result = await getClient().get("/contacts", query);
+        if (!params.fetch_all) {
+          const result = await client.get("/contacts", {
+            ...baseQuery,
+            page: params.page,
+            per_page: params.per_page,
+          });
+          return {
+            content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+          };
+        }
+        const all = await fetchAllPages(client, "/contacts", baseQuery);
         return {
-          content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+          content: [{ type: "text", text: JSON.stringify(all, null, 2) }],
         };
       } catch (error) {
         return {
@@ -256,12 +267,14 @@ Query syntax examples:
 
 Args:
   - query (string): Search query
-  - page (number, optional): Page number (default: 1)
+  - page (number, optional): Page number (default: 1). Ignored when fetch_all is true.
+  - fetch_all (boolean, optional): If true, auto-paginate up to Freshdesk's 10-page / 300-result search cap (default: false)
 
-Returns: Matching contacts (max 30 per page).`,
+Returns: Object with results array (max 30 per page) and total count.`,
       inputSchema: {
         query: z.string().min(1).describe("Search query"),
         page: z.number().int().min(1).default(1).describe("Page number"),
+        fetch_all: z.boolean().default(false).describe("Auto-paginate up to Freshdesk's 10-page / 300-result search cap"),
       },
       annotations: {
         readOnlyHint: true,
@@ -272,12 +285,26 @@ Returns: Matching contacts (max 30 per page).`,
     },
     async (params) => {
       try {
-        const result = await getClient().get("/search/contacts", {
-          query: `"${params.query}"`,
-          page: params.page,
-        });
+        const client = getClient();
+        const baseQuery = { query: `"${params.query}"` };
+        if (!params.fetch_all) {
+          const result = await client.get("/search/contacts", {
+            ...baseQuery,
+            page: params.page,
+          });
+          return {
+            content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+          };
+        }
+        const aggregated = await fetchAllSearchPages(
+          client,
+          "/search/contacts",
+          baseQuery
+        );
         return {
-          content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+          content: [
+            { type: "text", text: JSON.stringify(aggregated, null, 2) },
+          ],
         };
       } catch (error) {
         return {

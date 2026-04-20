@@ -1,6 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { getClient, handleApiError } from "../services/freshdesk-client.js";
+import { fetchAllPages, fetchAllSearchPages } from "../services/pagination.js";
 
 export function registerCompanyTools(server: McpServer): void {
   server.registerTool(
@@ -94,13 +95,15 @@ Returns: Company object.`,
       description: `List all companies with pagination.
 
 Args:
-  - page (number, optional): Page number (default: 1)
+  - page (number, optional): Page number (default: 1). Ignored when fetch_all is true.
   - per_page (number, optional): Results per page, max 100 (default: 30)
+  - fetch_all (boolean, optional): If true, auto-paginate and return all companies (default: false)
 
 Returns: Array of company objects.`,
       inputSchema: {
         page: z.number().int().min(1).default(1).describe("Page number"),
         per_page: z.number().int().min(1).max(100).default(30).describe("Results per page"),
+        fetch_all: z.boolean().default(false).describe("Auto-paginate to fetch all companies"),
       },
       annotations: {
         readOnlyHint: true,
@@ -111,12 +114,19 @@ Returns: Array of company objects.`,
     },
     async (params) => {
       try {
-        const result = await getClient().get("/companies", {
-          page: params.page,
-          per_page: params.per_page,
-        });
+        const client = getClient();
+        if (!params.fetch_all) {
+          const result = await client.get("/companies", {
+            page: params.page,
+            per_page: params.per_page,
+          });
+          return {
+            content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+          };
+        }
+        const all = await fetchAllPages(client, "/companies");
         return {
-          content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+          content: [{ type: "text", text: JSON.stringify(all, null, 2) }],
         };
       } catch (error) {
         return {
@@ -229,12 +239,14 @@ Query syntax examples:
 
 Args:
   - query (string): Search query
-  - page (number, optional): Page number (default: 1)
+  - page (number, optional): Page number (default: 1). Ignored when fetch_all is true.
+  - fetch_all (boolean, optional): If true, auto-paginate up to Freshdesk's 10-page / 300-result search cap (default: false)
 
-Returns: Matching companies.`,
+Returns: Object with results array (max 30 per page) and total count.`,
       inputSchema: {
         query: z.string().min(1).describe("Search query"),
         page: z.number().int().min(1).default(1).describe("Page number"),
+        fetch_all: z.boolean().default(false).describe("Auto-paginate up to Freshdesk's 10-page / 300-result search cap"),
       },
       annotations: {
         readOnlyHint: true,
@@ -245,12 +257,26 @@ Returns: Matching companies.`,
     },
     async (params) => {
       try {
-        const result = await getClient().get("/search/companies", {
-          query: `"${params.query}"`,
-          page: params.page,
-        });
+        const client = getClient();
+        const baseQuery = { query: `"${params.query}"` };
+        if (!params.fetch_all) {
+          const result = await client.get("/search/companies", {
+            ...baseQuery,
+            page: params.page,
+          });
+          return {
+            content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+          };
+        }
+        const aggregated = await fetchAllSearchPages(
+          client,
+          "/search/companies",
+          baseQuery
+        );
         return {
-          content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+          content: [
+            { type: "text", text: JSON.stringify(aggregated, null, 2) },
+          ],
         };
       } catch (error) {
         return {

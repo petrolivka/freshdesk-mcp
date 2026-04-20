@@ -178,16 +178,25 @@ describe("Agent Tools", () => {
       ];
       mockClient.get.mockResolvedValue(roles);
 
-      const result = await handlers.get("freshdesk_list_roles")!({});
+      const result = await handlers.get("freshdesk_list_roles")!({
+        page: 1,
+        per_page: 30,
+      });
 
-      expect(mockClient.get).toHaveBeenCalledWith("/roles");
+      expect(mockClient.get).toHaveBeenCalledWith("/roles", {
+        page: 1,
+        per_page: 30,
+      });
       expect(result.content[0].text).toBe(JSON.stringify(roles, null, 2));
     });
 
     it("should handle errors", async () => {
       mockClient.get.mockRejectedValue(new Error("Auth failed"));
 
-      const result = await handlers.get("freshdesk_list_roles")!({});
+      const result = await handlers.get("freshdesk_list_roles")!({
+        page: 1,
+        per_page: 30,
+      });
 
       expect(result.isError).toBe(true);
     });

@@ -162,6 +162,62 @@ describe("Ticket Tools", () => {
 
       expect(result.isError).toBe(true);
     });
+
+    it("should auto-paginate across all pages when fetch_all is true", async () => {
+      const fullPage = Array.from({ length: 100 }, (_, i) => ({ id: i + 1 }));
+      const partialPage = [{ id: 101 }, { id: 102 }];
+      mockClient.get
+        .mockResolvedValueOnce(fullPage)
+        .mockResolvedValueOnce(partialPage);
+
+      const result = await handlers.get("freshdesk_list_tickets")!({
+        page: 1,
+        per_page: 30,
+        fetch_all: true,
+        order_by: "created_at",
+        order_type: "desc",
+        filter: "new_and_my_open",
+      });
+
+      expect(mockClient.get).toHaveBeenCalledTimes(2);
+      expect(mockClient.get).toHaveBeenNthCalledWith(1, "/tickets", {
+        page: 1,
+        per_page: 100,
+        order_by: "created_at",
+        order_type: "desc",
+        filter: "new_and_my_open",
+      });
+      expect(mockClient.get).toHaveBeenNthCalledWith(2, "/tickets", {
+        page: 2,
+        per_page: 100,
+        order_by: "created_at",
+        order_type: "desc",
+        filter: "new_and_my_open",
+      });
+      const parsed = JSON.parse(result.content[0].text);
+      expect(parsed).toHaveLength(102);
+      expect(parsed[0]).toEqual({ id: 1 });
+      expect(parsed[101]).toEqual({ id: 102 });
+    });
+
+    it("should stop on empty page when fetch_all is true", async () => {
+      const fullPage = Array.from({ length: 100 }, (_, i) => ({ id: i + 1 }));
+      mockClient.get
+        .mockResolvedValueOnce(fullPage)
+        .mockResolvedValueOnce([]);
+
+      const result = await handlers.get("freshdesk_list_tickets")!({
+        page: 1,
+        per_page: 30,
+        fetch_all: true,
+        order_by: "created_at",
+        order_type: "desc",
+      });
+
+      expect(mockClient.get).toHaveBeenCalledTimes(2);
+      const parsed = JSON.parse(result.content[0].text);
+      expect(parsed).toHaveLength(100);
+    });
   });
 
   describe("freshdesk_update_ticket", () => {

@@ -49,26 +49,26 @@ Add to your Claude Code MCP settings:
 ### Tickets
 - `freshdesk_create_ticket` - Create a new ticket
 - `freshdesk_get_ticket` - Get ticket by ID (with optional includes)
-- `freshdesk_list_tickets` - List tickets with filters and pagination
+- `freshdesk_list_tickets` - List tickets with filters and pagination (supports `fetch_all` to auto-paginate)
 - `freshdesk_update_ticket` - Update ticket fields
 - `freshdesk_delete_ticket` - Delete (trash) a ticket
-- `freshdesk_search_tickets` - Search with Freshdesk query language
+- `freshdesk_search_tickets` - Search with Freshdesk query language (supports `fetch_all`; Freshdesk caps search results at 300)
 
 ### Contacts
 - `freshdesk_create_contact` - Create a new contact
 - `freshdesk_get_contact` - Get contact by ID
-- `freshdesk_list_contacts` - List contacts with filters
+- `freshdesk_list_contacts` - List contacts with filters (supports `fetch_all`)
 - `freshdesk_update_contact` - Update contact fields
 - `freshdesk_delete_contact` - Soft-delete a contact
-- `freshdesk_search_contacts` - Search contacts
+- `freshdesk_search_contacts` - Search contacts (supports `fetch_all`; capped at 300)
 
 ### Companies
 - `freshdesk_create_company` - Create a new company
 - `freshdesk_get_company` - Get company by ID
-- `freshdesk_list_companies` - List companies
+- `freshdesk_list_companies` - List companies (supports `fetch_all`)
 - `freshdesk_update_company` - Update company fields
 - `freshdesk_delete_company` - Delete a company
-- `freshdesk_search_companies` - Search companies
+- `freshdesk_search_companies` - Search companies (supports `fetch_all`; capped at 300)
 
 ### Conversations
 - `freshdesk_reply_to_ticket` - Send a reply to a ticket
@@ -78,16 +78,16 @@ Add to your Claude Code MCP settings:
 - `freshdesk_delete_conversation` - Delete a conversation
 
 ### Agents & Groups
-- `freshdesk_list_agents` - List agents
+- `freshdesk_list_agents` - List agents (supports `fetch_all`)
 - `freshdesk_get_agent` - Get agent by ID
 - `freshdesk_get_current_agent` - Get authenticated agent info
-- `freshdesk_list_groups` - List groups
+- `freshdesk_list_groups` - List groups (supports `fetch_all`)
 - `freshdesk_get_group` - Get group by ID
-- `freshdesk_list_roles` - List roles
+- `freshdesk_list_roles` - List roles (supports `fetch_all`)
 
 ### Time Entries
 - `freshdesk_create_time_entry` - Log time against a ticket
-- `freshdesk_list_time_entries` - List time entries with filters
+- `freshdesk_list_time_entries` - List time entries with filters (supports `fetch_all`)
 - `freshdesk_update_time_entry` - Update a time entry
 - `freshdesk_delete_time_entry` - Delete a time entry
 - `freshdesk_toggle_timer` - Start/stop a timer on a time entry
@@ -98,8 +98,8 @@ Add to your Claude Code MCP settings:
 - `freshdesk_list_company_fields` - List all company fields (including custom)
 
 ### Canned Responses
-- `freshdesk_list_canned_response_folders` - List canned response folders
-- `freshdesk_list_canned_responses` - List responses in a folder
+- `freshdesk_list_canned_response_folders` - List canned response folders (supports `fetch_all`)
+- `freshdesk_list_canned_responses` - List responses in a folder (supports `fetch_all`)
 - `freshdesk_get_canned_response` - Get a specific canned response
 
 ### Products & Business Hours
@@ -109,17 +109,17 @@ Add to your Claude Code MCP settings:
 - `freshdesk_get_business_hours` - Get business hours by ID
 
 ### Solutions (Knowledge Base)
-- `freshdesk_list_solution_categories` - List KB categories
+- `freshdesk_list_solution_categories` - List KB categories (supports `fetch_all`)
 - `freshdesk_get_solution_category` - Get category by ID
-- `freshdesk_list_solution_folders` - List folders in a category
+- `freshdesk_list_solution_folders` - List folders in a category (supports `fetch_all`)
 - `freshdesk_get_solution_folder` - Get folder by ID
-- `freshdesk_list_solution_articles` - List articles in a folder
+- `freshdesk_list_solution_articles` - List articles in a folder (supports `fetch_all`)
 - `freshdesk_get_solution_article` - Get article by ID
 - `freshdesk_create_solution_article` - Create a KB article
 - `freshdesk_update_solution_article` - Update a KB article
 
 ### Satisfaction Ratings & SLA
-- `freshdesk_list_satisfaction_ratings` - List all CSAT ratings
+- `freshdesk_list_satisfaction_ratings` - List all CSAT ratings (supports `fetch_all`)
 - `freshdesk_get_ticket_satisfaction_ratings` - Get ratings for a ticket
 - `freshdesk_list_sla_policies` - List SLA policies
 

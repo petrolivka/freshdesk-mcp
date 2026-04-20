@@ -1,6 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { getClient, handleApiError } from "../services/freshdesk-client.js";
+import { fetchAllPages } from "../services/pagination.js";
 
 export function registerSatisfactionRatingTools(server: McpServer): void {
   server.registerTool(
@@ -10,13 +11,15 @@ export function registerSatisfactionRatingTools(server: McpServer): void {
       description: `List all customer satisfaction ratings across the helpdesk.
 
 Args:
-  - page (number, optional): Page number (default: 1)
+  - page (number, optional): Page number (default: 1). Ignored when fetch_all is true.
   - per_page (number, optional): Results per page, max 100 (default: 30)
+  - fetch_all (boolean, optional): If true, auto-paginate and return all ratings (default: false)
 
 Returns: Array of satisfaction rating objects.`,
       inputSchema: {
         page: z.number().int().min(1).default(1).describe("Page number"),
         per_page: z.number().int().min(1).max(100).default(30).describe("Results per page"),
+        fetch_all: z.boolean().default(false).describe("Auto-paginate to fetch all ratings"),
       },
       annotations: {
         readOnlyHint: true,
@@ -27,12 +30,19 @@ Returns: Array of satisfaction rating objects.`,
     },
     async (params) => {
       try {
-        const result = await getClient().get("/surveys/satisfaction_ratings", {
-          page: params.page,
-          per_page: params.per_page,
-        });
+        const client = getClient();
+        if (!params.fetch_all) {
+          const result = await client.get("/surveys/satisfaction_ratings", {
+            page: params.page,
+            per_page: params.per_page,
+          });
+          return {
+            content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+          };
+        }
+        const all = await fetchAllPages(client, "/surveys/satisfaction_ratings");
         return {
-          content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+          content: [{ type: "text", text: JSON.stringify(all, null, 2) }],
         };
       } catch (error) {
         return {
